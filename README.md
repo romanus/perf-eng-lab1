@@ -2,9 +2,9 @@
 
 ---
 
-## Build
+## Prerequisites
 
-* Update `Makefile` with your architecture
+* AVX2 commands are used
 * `chmod +x test.sh`
 
 ## Run
