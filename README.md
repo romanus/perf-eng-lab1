@@ -5,6 +5,7 @@
 ## Prerequisites
 
 * AVX2 commands are used
+* `blas` should be linked properly in `Makefile`
 * `chmod +x test.sh`
 
 ## Run
