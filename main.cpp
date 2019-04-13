@@ -6,7 +6,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <bitset>
+#include <iostream>
+#include <string.h>
 #include <immintrin.h>
+#include <emmintrin.h>
 
 const float sec_const = 1000000.0;
 
@@ -279,48 +283,158 @@ int vec_mat_mult(int32_t **&m1, int32_t **&m2, int32_t side){
     return 0;
 }
 
+// find position of seq in str, return position, else -1
+int raw_substr(const char str[], int32_t str_len, const char seq[], int32_t seq_len){
+
+    for(size_t i = 0; i < str_len; i++)
+    {
+
+        for(size_t j = 0; j < seq_len; j++)
+        {
+            if(seq[j] != str[i+j])
+                break;
+
+            if(j + 1 == seq_len)
+                return i;
+        }
+    }
+    
+    return -1;
+}
+
+// find position of seq in str, return position, else -1
+int vec_substr(const char str[], int32_t str_len, const char seq[], int32_t seq_len){
+
+    __m128i rT1, rT2, rT3;
+    __m256i rA1, rA2, rR, rR2;
+    __uint128_t* result = new __uint128_t[2];
+
+    for(int32_t i = 0; i < str_len; i+=2)
+    {
+        for(int32_t j = 0; j < seq_len; j+=16)
+        {
+
+            // if(i != 2)
+            //     continue;
+
+            int32_t shift = (seq_len - j) > 16 ? 0 : 16 - (seq_len - j);
+
+            rT1 = _mm_loadu_si128((__m128i *)&str[i+j]);
+            rT2 = _mm_loadu_si128((__m128i *)&str[i+j+1]);
+            rT3 = _mm_loadu_si128((__m128i *)&seq[j]);
+
+            rA1 = _mm256_loadu2_m128i((__m128i *)&rT2, (__m128i *)&rT1);
+            rA2 = _mm256_loadu2_m128i((__m128i *)&rT3, (__m128i *)&rT3);
+
+            rR = _mm256_xor_si256(rA1, rA2);
+
+            _mm256_store_si256((__m256i *)result, rR);
+
+            // std::bitset<128> shifted0 = std::bitset<128>(result[0]) << (shift * 8);
+            // std::bitset<128> shifted1 = std::bitset<128>(result[1]) << (shift * 8);
+
+            // std::cout << shifted0 << std::endl;
+            // std::cout << shifted1 << std::endl;
+
+            // if(result != 0)
+            //     break;
+
+            // if(j + 16 >= seq_len)
+            //     return i;
+        }
+    }
+    
+    return -1;
+}
+
+int test_substr(const char str[], int32_t str_len, const char seq[], int32_t seq_len){
+    clock_t start_t;
+    clock_t end_t;
+    clock_t clock_delta;
+    double clock_delta_sec;
+    
+    start_t = clock();
+
+    for(size_t i = 0; i < 50000000; i++)
+    {
+        int _ = raw_substr(str, str_len, seq, seq_len);
+    }
+    
+    end_t = clock();
+    clock_delta = end_t - start_t;
+    clock_delta_sec = (double) (clock_delta / sec_const);
+    printf("raw\t %.2fs\n", clock_delta_sec);
+
+    start_t = clock();
+
+    for(size_t i = 0; i < 50000000; i++)
+    {
+        int _ = vec_substr(str, str_len, seq, seq_len);
+    }
+    
+    end_t = clock();
+    clock_delta = end_t - start_t;
+    clock_delta_sec = (double) (clock_delta / sec_const);
+    printf("vec\t %.2fs\n", clock_delta_sec);
+
+    return 0;
+}
+
 int main(){
 
-    printf("Vectors mult and add\n");
+    // printf("Vectors mult and add\n");
 
-    int32_t *v1, *v2, *v3, *v4; // since memory is allocated dynamically, all arrays are aligned
+    // int32_t *v1, *v2, *v3, *v4; // since memory is allocated dynamically, all arrays are aligned
 
-    init_rand(v1, ARR_DIM, MAX_NUM);
-    init_rand(v2, ARR_DIM, MAX_NUM);
-    init_rand(v3, ARR_DIM, MAX_NUM);
-    init_rand(v4, ARR_DIM, MAX_NUM);
+    // init_rand(v1, ARR_DIM, MAX_NUM);
+    // init_rand(v2, ARR_DIM, MAX_NUM);
+    // init_rand(v3, ARR_DIM, MAX_NUM);
+    // init_rand(v4, ARR_DIM, MAX_NUM);
 
-    raw_vec_multadd(v1, v2, v3, v4, ARR_DIM);
-    raw_vec_multadd(v1, v2, v3, v4, ARR_DIM);
-    raw_vec_multadd(v1, v2, v3, v4, ARR_DIM);
-    vec_vec_multadd(v1, v2, v3, v4, ARR_DIM);
-    vec_vec_multadd(v1, v2, v3, v4, ARR_DIM);
-    vec_vec_multadd(v1, v2, v3, v4, ARR_DIM);
+    // raw_vec_multadd(v1, v2, v3, v4, ARR_DIM);
+    // raw_vec_multadd(v1, v2, v3, v4, ARR_DIM);
+    // raw_vec_multadd(v1, v2, v3, v4, ARR_DIM);
+    // vec_vec_multadd(v1, v2, v3, v4, ARR_DIM);
+    // vec_vec_multadd(v1, v2, v3, v4, ARR_DIM);
+    // vec_vec_multadd(v1, v2, v3, v4, ARR_DIM);
 
-    deinit(v1);
-    deinit(v2);
-    deinit(v3);
-    deinit(v4);
+    // deinit(v1);
+    // deinit(v2);
+    // deinit(v3);
+    // deinit(v4);
 
-    printf("Matrices mult\n");
+    // printf("Matrices mult\n");
 
-    int32_t **m1, **m2;
+    // int32_t **m1, **m2;
 
-    init_rand(m1, MAT_DIM, MAX_NUM);
-    init_rand(m2, MAT_DIM, MAX_NUM);
+    // init_rand(m1, MAT_DIM, MAX_NUM);
+    // init_rand(m2, MAT_DIM, MAX_NUM);
 
-    raw_mat_mult(m1, m2, MAT_DIM);
-    raw_mat_mult(m1, m2, MAT_DIM);
-    raw_mat_mult(m1, m2, MAT_DIM);
-    blas_mat_mult(m1, m2, MAT_DIM);
-    blas_mat_mult(m1, m2, MAT_DIM);
-    blas_mat_mult(m1, m2, MAT_DIM);
-    vec_mat_mult(m1, m2, MAT_DIM);
-    vec_mat_mult(m1, m2, MAT_DIM);
-    vec_mat_mult(m1, m2, MAT_DIM);
+    // raw_mat_mult(m1, m2, MAT_DIM);
+    // raw_mat_mult(m1, m2, MAT_DIM);
+    // raw_mat_mult(m1, m2, MAT_DIM);
+    // blas_mat_mult(m1, m2, MAT_DIM);
+    // blas_mat_mult(m1, m2, MAT_DIM);
+    // blas_mat_mult(m1, m2, MAT_DIM);
+    // vec_mat_mult(m1, m2, MAT_DIM);
+    // vec_mat_mult(m1, m2, MAT_DIM);
+    // vec_mat_mult(m1, m2, MAT_DIM);
 
-    deinit(m1, MAT_DIM);
-    deinit(m2, MAT_DIM);
+    // deinit(m1, MAT_DIM);
+    // deinit(m2, MAT_DIM);
+
+    printf("Substring find invoking\n");
+
+    const char str[16] __attribute__((aligned(2))) = "XYZAVKLRPZA"; 
+    const char seq[16] __attribute__((aligned(16))) = "ZA";
+
+    int32_t pos_raw = raw_substr(str, strlen(str), seq, strlen(seq));
+    int32_t pos_vec = vec_substr(str, strlen(str), seq, strlen(seq));
+
+    printf("raw: First occurence at position #%i\n", pos_raw);
+    printf("vec: First occurence at position #%i\n", pos_vec);
+
+    test_substr(str, 11, seq, 2);
 
     return 0;
 }
