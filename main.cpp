@@ -129,7 +129,7 @@ int init_zero(int32_t **&array, int32_t side){
     array = new int32_t*[side];
     
     for(int i = 0; i < side; i++){
-        array[i] = new int32_t[side];
+        array[i] = new int32_t[side] __attribute__((aligned(8)));
 
         for(int j = 0; j < side; j++)
             array[i][j] = 0;
@@ -390,7 +390,7 @@ int main(){
 
     printf("\nVectors mult and add\n");
 
-    int32_t *v1, *v2, *v3, *v4; // since memory is allocated dynamically, all arrays are aligned
+    int32_t *v1 __attribute__((aligned(8))), *v2 __attribute__((aligned(8))), *v3 __attribute__((aligned(8))), *v4 __attribute__((aligned(8)));
 
     init_rand(v1, ARR_DIM, MAX_NUM);
     init_rand(v2, ARR_DIM, MAX_NUM);
