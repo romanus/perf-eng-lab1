@@ -129,7 +129,7 @@ int init_zero(int32_t **&array, int32_t side){
     array = new int32_t*[side];
     
     for(int i = 0; i < side; i++){
-        array[i] = new int32_t[side] __attribute__((aligned(8)));
+        array[i] = new int32_t[side];
 
         for(int j = 0; j < side; j++)
             array[i][j] = 0;
