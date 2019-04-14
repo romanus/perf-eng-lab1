@@ -320,7 +320,7 @@ int vec_substr(const char str[], int32_t str_len, const char seq[], int32_t seq_
 
         for(int32_t j = 0; j < seq_len; j+=16)
         {
-            if(b1 || b2 == false)
+            if(b1 == false && b2 == false)
                 break;
 
             int32_t shift = (seq_len - j) > 16 ? 0 : 16 - (seq_len - j); // if we search by less then 16 chars, we will need to drop some bits later
