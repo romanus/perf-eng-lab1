@@ -4,6 +4,7 @@
 
 ## Prerequisites
 
+* 2 GB of RAM (1 GB is used while running)
 * AVX2 commands are used
 * `blas` should be linked properly in `Makefile`
 * `chmod +x test.sh`
