@@ -42,11 +42,11 @@ vec      2.97s
 
 Short strings
 raw      0.11s
-vec      0.60s
-Other strings
-raw      2.61s
-vec      1.66s
-Long strings
-raw      5.96s
-vec      3.76s
+vec      1.08s
+Other strings:
+raw      2.68s
+vec      11.58s
+Long strings:
+raw      5.97s
+vec      21.59s
 ```
