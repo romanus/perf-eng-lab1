@@ -6,11 +6,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-#include <bitset>
-#include <iostream>
 #include <string.h>
 #include <immintrin.h>
-#include <emmintrin.h>
 
 const float sec_const = 1000000.0;
 
@@ -306,41 +303,50 @@ int raw_substr(const char str[], int32_t str_len, const char seq[], int32_t seq_
 int vec_substr(const char str[], int32_t str_len, const char seq[], int32_t seq_len){
 
     __m128i rT1, rT2, rT3;
-    __m256i rA1, rA2, rR, rR2;
-    __uint128_t* result = new __uint128_t[2];
+    __m256i rA1, rA2, rR;
+    __int128_t* result = new __int128_t[2];
+    bool b1, b2;
+
+    // so, the main idea is that we search in two subsequent iterations simultaneously by 16 chars/time
+    //
+    // it can be rewritten to search in 4 iterations by 8 chars (or 8/4), that is faster, but harder to read
+    // I just wanted to show the approach
 
     for(int32_t i = 0; i < str_len; i+=2)
     {
+
+        b1 = true; // assume that we found seq
+        b2 = true;
+
         for(int32_t j = 0; j < seq_len; j+=16)
         {
+            if(b1 || b2 == false)
+                break;
 
-            // if(i != 2)
-            //     continue;
-
-            int32_t shift = (seq_len - j) > 16 ? 0 : 16 - (seq_len - j);
+            int32_t shift = (seq_len - j) > 16 ? 0 : 16 - (seq_len - j); // if we search by less then 16 chars, we will need to drop some bits later
 
             rT1 = _mm_loadu_si128((__m128i *)&str[i+j]);
             rT2 = _mm_loadu_si128((__m128i *)&str[i+j+1]);
-            rT3 = _mm_loadu_si128((__m128i *)&seq[j]);
+            rT3 = _mm_load_si128((__m128i *)&seq[j]);
 
             rA1 = _mm256_loadu2_m128i((__m128i *)&rT2, (__m128i *)&rT1);
             rA2 = _mm256_loadu2_m128i((__m128i *)&rT3, (__m128i *)&rT3);
 
-            rR = _mm256_xor_si256(rA1, rA2);
+            rR = _mm256_xor_si256(rA1, rA2); // if chars are same, a XOR a == 0
 
-            _mm256_store_si256((__m256i *)result, rR);
+            _mm256_storeu_si256((__m256i *)result, rR);
 
-            // std::bitset<128> shifted0 = std::bitset<128>(result[0]) << (shift * 8);
-            // std::bitset<128> shifted1 = std::bitset<128>(result[1]) << (shift * 8);
+            if(result[0] << (shift * 8) != 0) // drop bits that are not significant
+                b1 = false;
 
-            // std::cout << shifted0 << std::endl;
-            // std::cout << shifted1 << std::endl;
+            if(result[1] << (shift * 8) != 0)
+                b2 = false;
 
-            // if(result != 0)
-            //     break;
+            if(b1 && j + 16 >= seq_len)
+                return i;
 
-            // if(j + 16 >= seq_len)
-            //     return i;
+            if(b2 && j + 16 >= seq_len)
+                return i + 1;
         }
     }
     
@@ -355,7 +361,7 @@ int test_substr(const char str[], int32_t str_len, const char seq[], int32_t seq
     
     start_t = clock();
 
-    for(size_t i = 0; i < 50000000; i++)
+    for(size_t i = 0; i < 10000000; i++)
     {
         int _ = raw_substr(str, str_len, seq, seq_len);
     }
@@ -367,7 +373,7 @@ int test_substr(const char str[], int32_t str_len, const char seq[], int32_t seq
 
     start_t = clock();
 
-    for(size_t i = 0; i < 50000000; i++)
+    for(size_t i = 0; i < 10000000; i++)
     {
         int _ = vec_substr(str, str_len, seq, seq_len);
     }
@@ -382,59 +388,67 @@ int test_substr(const char str[], int32_t str_len, const char seq[], int32_t seq
 
 int main(){
 
-    // printf("Vectors mult and add\n");
+    printf("\nVectors mult and add\n");
 
-    // int32_t *v1, *v2, *v3, *v4; // since memory is allocated dynamically, all arrays are aligned
+    int32_t *v1, *v2, *v3, *v4; // since memory is allocated dynamically, all arrays are aligned
 
-    // init_rand(v1, ARR_DIM, MAX_NUM);
-    // init_rand(v2, ARR_DIM, MAX_NUM);
-    // init_rand(v3, ARR_DIM, MAX_NUM);
-    // init_rand(v4, ARR_DIM, MAX_NUM);
+    init_rand(v1, ARR_DIM, MAX_NUM);
+    init_rand(v2, ARR_DIM, MAX_NUM);
+    init_rand(v3, ARR_DIM, MAX_NUM);
+    init_rand(v4, ARR_DIM, MAX_NUM);
 
-    // raw_vec_multadd(v1, v2, v3, v4, ARR_DIM);
-    // raw_vec_multadd(v1, v2, v3, v4, ARR_DIM);
-    // raw_vec_multadd(v1, v2, v3, v4, ARR_DIM);
-    // vec_vec_multadd(v1, v2, v3, v4, ARR_DIM);
-    // vec_vec_multadd(v1, v2, v3, v4, ARR_DIM);
-    // vec_vec_multadd(v1, v2, v3, v4, ARR_DIM);
+    raw_vec_multadd(v1, v2, v3, v4, ARR_DIM);
+    raw_vec_multadd(v1, v2, v3, v4, ARR_DIM);
+    raw_vec_multadd(v1, v2, v3, v4, ARR_DIM);
+    vec_vec_multadd(v1, v2, v3, v4, ARR_DIM);
+    vec_vec_multadd(v1, v2, v3, v4, ARR_DIM);
+    vec_vec_multadd(v1, v2, v3, v4, ARR_DIM);
 
-    // deinit(v1);
-    // deinit(v2);
-    // deinit(v3);
-    // deinit(v4);
+    deinit(v1);
+    deinit(v2);
+    deinit(v3);
+    deinit(v4);
 
-    // printf("Matrices mult\n");
+    printf("\nMatrices mult\n");
 
-    // int32_t **m1, **m2;
+    int32_t **m1, **m2;
 
-    // init_rand(m1, MAT_DIM, MAX_NUM);
-    // init_rand(m2, MAT_DIM, MAX_NUM);
+    init_rand(m1, MAT_DIM, MAX_NUM);
+    init_rand(m2, MAT_DIM, MAX_NUM);
 
-    // raw_mat_mult(m1, m2, MAT_DIM);
-    // raw_mat_mult(m1, m2, MAT_DIM);
-    // raw_mat_mult(m1, m2, MAT_DIM);
-    // blas_mat_mult(m1, m2, MAT_DIM);
-    // blas_mat_mult(m1, m2, MAT_DIM);
-    // blas_mat_mult(m1, m2, MAT_DIM);
-    // vec_mat_mult(m1, m2, MAT_DIM);
-    // vec_mat_mult(m1, m2, MAT_DIM);
-    // vec_mat_mult(m1, m2, MAT_DIM);
+    raw_mat_mult(m1, m2, MAT_DIM);
+    raw_mat_mult(m1, m2, MAT_DIM);
+    raw_mat_mult(m1, m2, MAT_DIM);
+    blas_mat_mult(m1, m2, MAT_DIM);
+    blas_mat_mult(m1, m2, MAT_DIM);
+    blas_mat_mult(m1, m2, MAT_DIM);
+    vec_mat_mult(m1, m2, MAT_DIM);
+    vec_mat_mult(m1, m2, MAT_DIM);
+    vec_mat_mult(m1, m2, MAT_DIM);
 
-    // deinit(m1, MAT_DIM);
-    // deinit(m2, MAT_DIM);
+    deinit(m1, MAT_DIM);
+    deinit(m2, MAT_DIM);
 
-    printf("Substring find invoking\n");
+    printf("\nShort strings\n");
 
-    const char str[16] __attribute__((aligned(2))) = "XYZAVKLRPZA"; 
+    const char str[256] = "XYZAVKLRPZA"; 
     const char seq[16] __attribute__((aligned(16))) = "ZA";
+    test_substr(str, strlen(str), seq, strlen(seq));
 
-    int32_t pos_raw = raw_substr(str, strlen(str), seq, strlen(seq));
-    int32_t pos_vec = vec_substr(str, strlen(str), seq, strlen(seq));
+    const char str2[256] = "XYZAVKLRSGDFSDPZASFSGFXYZAVKLRPZAXYZSDFSAVKLRSFGDGDFCPZAXYZAVKLRSGDFSDPZASFSGFXYZAVKLRPZAXYZSDFSAVKLRSFGDGDFCPZASDFHJFKSDFKJSDFJKSDFJK"; 
+    const char seq2[16] __attribute__((aligned(16))) = "FKSDFKJSDFJK";
+    printf("Other strings:\n");
+    test_substr(str2, strlen(str2), seq2, strlen(seq2));
 
-    printf("raw: First occurence at position #%i\n", pos_raw);
-    printf("vec: First occurence at position #%i\n", pos_vec);
+    const char str3[256] = "DPZASFSGFXYZAVKLRPZAVKLRSFGDGDFCPZAXYZAVKLRSGDFSDPZASFSGFXYZAVKLRPZAXYZSDFSAVKLRSFGDGDFCPZASDKSDFKJSDFJKSDFJKXYZAVKLRSGDFSDPZASFSGFXYZAVKLRPZAXYZSDFSAVKLRSFGDGDFCPZAXYZAVKLRSGDFSDPZASFSGFXYZAVKLRPZAXYZSDFSAVKLRSFGDGDFCPZASDFHJFKSDFKJSDFJKSDFJKDFSFSFSFSFSD"; 
+    const char seq3[32] __attribute__((aligned(16))) = "FKSDFKJSDFJKSDFJKDFSFSFSFSFSD";
+    printf("Long strings:\n");
+    test_substr(str3, strlen(str3), seq3, strlen(seq3));
 
-    test_substr(str, 11, seq, 2);
+    // int32_t pos_raw = raw_substr(str3, strlen(str3), seq3, strlen(seq3));
+    // int32_t pos_vec = vec_substr(str3, strlen(str3), seq3, strlen(seq3));
+    // printf("raw: First occurence at position #%i\n", pos_raw);
+    // printf("vec: First occurence at position #%i\n", pos_vec);
 
     return 0;
 }
