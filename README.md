@@ -50,3 +50,39 @@ Long strings:
 raw      5.97s
 vec      21.59s
 ```
+
+## Results (-O3)
+
+```
+macbook893:perf-eng-lab1 trom$ ./test.sh 
+gcc -march=native -O3 -g0 -std=c++14 -lstdc++ -o main main.cpp -I/usr/local/opt/openblas/include -L/usr/local/opt/openblas/lib -lopenblas
+
+Vectors mult and add
+raw      0.00s
+raw      0.00s
+raw      0.00s
+vec      0.00s
+vec      0.00s
+vec      0.00s
+
+Matrices mult
+raw      2.13s
+raw      2.03s
+raw      2.01s
+blas     0.09s
+blas     0.08s
+blas     0.07s
+vec      0.27s
+vec      0.26s
+vec      0.25s
+
+Short strings
+raw      0.04s
+vec      0.12s
+Other strings:
+raw      1.11s
+vec      3.54s
+Long strings:
+raw      2.35s
+vec      6.85s
+```
